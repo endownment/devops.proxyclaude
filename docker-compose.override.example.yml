@@ -1,0 +1,8 @@
+# Copy to docker-compose.override.yml:
+#   cp docker-compose.override.example.yml docker-compose.override.yml
+# Docker Compose merges docker-compose.override.yml into docker-compose.yml automatically.
+# docker-compose.override.yml is not tracked by git: keep machine-specific settings here.
+services:
+  claude-vpn:
+    # Send all traffic through the VPN container awg-vpn (a separate project that must be running).
+    network_mode: "container:awg-vpn"

@@ -1,0 +1,21 @@
+services:
+  claude-vpn:
+    build:
+      context: .
+      args:
+        HOST_UID: ${HOST_UID}
+        HOST_GID: ${HOST_GID}
+    image: claude-vpn
+    container_name: claude-vpn
+    working_dir: /projects
+    env_file:
+      - path: .env.local
+        required: false
+    environment:
+      - HISTFILE=/home/ubuntu/.zsh_data/history
+    volumes:
+      - ./projects:/projects
+      - ./data/zsh:/home/ubuntu/.zsh_data
+      - ./data/sdkman:/home/ubuntu/.sdkman
+      - ./data/m2:/home/ubuntu/.m2
+      - ./data/gradle:/home/ubuntu/.gradle
