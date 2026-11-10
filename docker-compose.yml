@@ -13,8 +13,10 @@ services:
         required: false
     environment:
       - HISTFILE=/home/ubuntu/.zsh_data/history
+      - CLAUDE_CONFIG_DIR=/home/ubuntu/.claude
     volumes:
       - ./projects:/projects
+      - ./.claude:/home/ubuntu/.claude
       - ./data/zsh:/home/ubuntu/.zsh_data
       - ./data/sdkman:/home/ubuntu/.sdkman
       - ./data/m2:/home/ubuntu/.m2

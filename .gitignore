@@ -16,3 +16,5 @@ data/gradle/*
 !data/gradle/.gitkeep
 data/zsh/*
 !data/zsh/.gitkeep
+.claude/*
+!.claude/.gitkeep
