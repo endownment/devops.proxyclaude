@@ -6,14 +6,11 @@ ARG HOST_GID
 RUN : "${HOST_UID:?HOST_UID is not set: build the image with docker compose}" \
  && : "${HOST_GID:?HOST_GID is not set: build the image with docker compose}" \
  && apt-get update \
- && apt-get install -y --no-install-recommends curl ca-certificates git zip unzip jq less zsh \
+ && apt-get install -y --no-install-recommends curl ca-certificates git zip unzip jq less zsh iputils-ping iproute2 zstd \
  && rm -rf /var/lib/apt/lists/* \
  && usermod -s /usr/bin/zsh ubuntu \
  && if [ "$(id -g ubuntu)" != "${HOST_GID}" ]; then groupmod -g "${HOST_GID}" ubuntu; fi \
  && if [ "$(id -u ubuntu)" != "${HOST_UID}" ]; then usermod -u "${HOST_UID}" ubuntu; fi
-
-COPY start.sh /usr/local/bin/start.sh
-RUN chmod 755 /usr/local/bin/start.sh
 
 USER ubuntu
 WORKDIR /home/ubuntu
@@ -28,9 +25,10 @@ RUN curl -fsSL https://get.sdkman.io | bash \
  && mv ~/.sdkman ~/.sdkman-seed \
  && mkdir ~/.sdkman
 
-RUN curl -fsSL https://claude.ai/install.sh | bash
-
 ENV PATH="/home/ubuntu/.local/bin:/home/ubuntu/.sdkman/candidates/maven/current/bin:/home/ubuntu/.sdkman/candidates/gradle/current/bin:${PATH}"
 
+# Keep this near the end: editing start.sh must not invalidate the slow layers above.
+COPY start.sh /usr/local/bin/start.sh
+
 WORKDIR /projects
-CMD ["/usr/local/bin/start.sh"]
+CMD ["sh", "/usr/local/bin/start.sh"]

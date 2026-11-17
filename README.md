@@ -11,8 +11,8 @@ VPN container.
 claude-vpn/
 ├── docker-compose.yml                   # main Compose file
 ├── docker-compose.override.example.yml  # template for the local override (VPN network mode)
-├── Dockerfile                           # the image: Java, Maven, Gradle, SDKMAN, Claude Code, zsh
-├── start.sh                             # first start: fills the empty SDKMAN folder from the image
+├── Dockerfile                           # the image: Java, Maven, Gradle, SDKMAN, zsh (Claude Code is not baked in)
+├── start.sh                             # on start: fills the empty SDKMAN folder, installs or updates Claude Code
 ├── .env                                 # container user UID/GID (tracked by git, no secrets)
 ├── fill-user-env-with-current-user.sh   # writes the current user's UID/GID to .env
 ├── .env.local.example                   # template for .env.local (secrets)
@@ -20,10 +20,13 @@ claude-vpn/
 ├── .dockerignore
 ├── projects/                            # your projects, one subfolder per context (contents not tracked)
 └── data/                                # container data (contents not tracked)
-    ├── sdkman/                          # SDKMAN: JDKs, Maven, Gradle
-    ├── m2/                              # Maven dependency cache
-    ├── gradle/                          # Gradle cache
-    └── zsh/                             # zsh command history
+    ├── .sdkman/                         # SDKMAN: JDKs, Maven, Gradle
+    ├── .m2/                             # Maven dependency cache
+    ├── .gradle/                         # Gradle cache
+    ├── .zsh_data/                       # zsh command history
+    ├── .local/                          # Claude Code binaries and their updates (~/.local in the container)
+    ├── .claude/                         # Claude Code login, settings and sessions (~/.claude in the container)
+    └── distr/                           # Claude Code archives claude-<version>-linux-x64.zst (/distr, read-only)
 ```
 
 The empty folders are kept in git with `.gitkeep` files, so no directories have to be created
@@ -39,7 +42,42 @@ docker compose exec claude-vpn zsh
 ```
 
 The first build takes a few minutes. On the first start of the container, SDKMAN is copied from
-the image into `data/sdkman` (visible in `docker compose logs`).
+the image into `data/.sdkman` (visible in `docker compose logs`).
+
+## Claude Code installation and updates
+
+The image does not contain Claude Code. `start.sh` installs it when the container starts:
+
+1. It reads the installed version from `~/.local/bin/claude`.
+2. It looks for `claude-<version>-<platform>.zst` archives in `data/distr` (mounted read-only as `/distr`) and picks the newest one.
+3. If Claude Code is not installed, it unpacks that archive. If there is no archive, it runs the standard online installer (`https://claude.ai/install.sh`, 15 minute timeout).
+4. If Claude Code is installed and the archive is newer, it installs the archive over it. If the installed version is the same or newer, it does nothing.
+
+The archive is unpacked by hand into `~/.local/share/claude/versions/<version>` and `~/.local/bin/claude` is pointed at it. `claude install` is not used: it ignores the local file and downloads the latest build from the network.
+
+### Updating Claude Code offline
+
+1. Download the new `claude-<version>-linux-x64.zst` on the host and put it into `data/distr`.
+2. Run `docker compose restart`. The log should say `Installing Claude Code <version> from /distr/...`.
+
+The background auto-updater of Claude Code stays enabled. If it installs a newer version on its own, `start.sh` sees that the installed version is not older than the archive and leaves it alone. If it leaves a broken binary, `claude --version` prints nothing and `start.sh` reinstalls from the archive.
+
+### Rolling back
+
+Older versions stay in `data/.local/share/claude/versions`. The `~/.local/bin/claude` symlink uses an absolute path inside the container, so switch it with `docker exec`:
+
+```sh
+docker exec claude-vpn ln -sfn /home/ubuntu/.local/share/claude/versions/<old-version> /home/ubuntu/.local/bin/claude
+```
+
+Also remove the newer archive from `data/distr`, otherwise the next container start installs it again.
+
+### Reinstalling from scratch
+
+```sh
+find data/.local -mindepth 1 ! -name .gitkeep -delete
+docker compose up -d --force-recreate
+```
 
 ## Two env files
 
@@ -99,7 +137,7 @@ In zsh inside the container:
 - `sdk use java <id>` applies to the current shell; `sdk default java <id>` applies to all new shells
 - `.sdkmanrc` in a project folder: `sdk env init`, `sdk env`
 
-Everything is stored in `data/sdkman` and survives container recreation.
+Everything is stored in `data/.sdkman` and survives container recreation.
 
 ## Updating
 

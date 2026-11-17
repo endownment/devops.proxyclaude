@@ -2,19 +2,23 @@
 .env.local
 
 # local Compose override (machine-specific settings, created from docker-compose.override.example.yml)
-docker-compose.override.yml
+docker-compose.override.yml.*
 
 # contents of the mounted folders (the folders themselves are kept via .gitkeep)
 projects/*
 !projects/.gitkeep
+data/distr/*
+!data/distr/.gitkeep
 
-data/sdkman/*
-!data/sdkman/.gitkeep
-data/m2/*
-!data/m2/.gitkeep
-data/gradle/*
-!data/gradle/.gitkeep
-data/zsh/*
-!data/zsh/.gitkeep
-.claude/*
-!.claude/.gitkeep
+data/.sdkman/*
+!data/.sdkman/.gitkeep
+data/.m2/*
+!data/.m2/.gitkeep
+data/.gradle/*
+!data/.gradle/.gitkeep
+data/.zsh_data/*
+!data/.zsh_data/.gitkeep
+data/.local/*
+!data/.local/.gitkeep
+data/.claude/*
+!data/.claude/.gitkeep
