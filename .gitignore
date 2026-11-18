@@ -2,6 +2,7 @@
 .env.local
 
 # local Compose override (machine-specific settings, created from docker-compose.override.example.yml)
+docker-compose.override.yml
 docker-compose.override.yml.*
 
 # contents of the mounted folders (the folders themselves are kept via .gitkeep)
