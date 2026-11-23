@@ -2,6 +2,7 @@ FROM eclipse-temurin:17-jdk AS jdk17
 
 FROM eclipse-temurin:25-jdk
 
+ARG DEBIAN_FRONTEND=noninteractive
 ARG HOST_UID
 ARG HOST_GID
 
@@ -16,17 +17,18 @@ RUN : "${HOST_UID:?HOST_UID is not set: build the image with docker compose}" \
       xvfb xauth xdotool x11-utils imagemagick \
       libgtk-3-0t64 libgl1 libgl1-mesa-dri libxtst6 libxxf86vm1 \
       libpango-1.0-0 libpangoft2-1.0-0 libpangocairo-1.0-0 \
+      libnspr4 libnss3 libasound2t64 \
+      tini \
       fontconfig fonts-dejavu-core fonts-liberation \
  && rm -rf /var/lib/apt/lists/* \
  && usermod -s /usr/bin/zsh ubuntu \
  && if [ "$(id -g ubuntu)" != "${HOST_GID}" ]; then groupmod -g "${HOST_GID}" ubuntu; fi \
  && if [ "$(id -u ubuntu)" != "${HOST_UID}" ]; then usermod -u "${HOST_UID}" ubuntu; fi
 
-# Node.js 22 and the system libraries of the Chromium that Playwright drives
-# (scell-specs/tools/check_mermaid.mjs checks the mermaid diagrams in a headless browser).
+# Node.js 22 (scell-specs/tools/check_mermaid.mjs checks the mermaid diagrams in a headless browser;
+# the libraries of that Chromium are in the apt-get install list above).
 RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
  && apt-get install -y --no-install-recommends nodejs \
- && npx -y playwright@1.56.1 install-deps chromium \
  && rm -rf /var/lib/apt/lists/* /root/.npm
 
 # JDK 17 for scell (the build fails on JDK 25); JDK 25 of the base image stays in /opt/java/openjdk.
@@ -47,8 +49,8 @@ RUN curl -fsSL https://get.sdkman.io | bash \
  && mv ~/.sdkman ~/.sdkman-seed \
  && mkdir ~/.sdkman
 
-# The Chromium of Playwright for the mermaid check, in the user's cache.
-RUN npx -y playwright@latest install chromium
+# Keep the version equal to "playwright" in scell-specs/tools/package.json: each version looks for its own browser build.
+RUN npx -y playwright@1.65.1 install chromium
 
 ENV PATH="/opt/java/jdk17/bin:/home/ubuntu/.local/bin:/home/ubuntu/.sdkman/candidates/maven/current/bin:/home/ubuntu/.sdkman/candidates/gradle/current/bin:${PATH}"
 
@@ -56,4 +58,5 @@ ENV PATH="/opt/java/jdk17/bin:/home/ubuntu/.local/bin:/home/ubuntu/.sdkman/candi
 COPY start.sh /usr/local/bin/start.sh
 
 WORKDIR /projects
+ENTRYPOINT ["/usr/bin/tini", "--"]
 CMD ["sh", "/usr/local/bin/start.sh"]
